@@ -335,9 +335,6 @@ if df_raw is not None:
                 else:
                     st.write("🔘 Sem Múltiplas Faixas")
 
-        # Resto do código permanece igual...
-        # [Continua com toda a lógica de filtros, gráficos, etc.]
-        
         # Dataframe final filtrado
         df_filtrado = df_temp
 
@@ -348,7 +345,6 @@ if df_raw is not None:
         if st.button("Resetar Todos os Filtros"):
             st.rerun()
 
-        # [Resto do código dos gráficos e análises continua igual...]
         # Calcular estatísticas
         if not df_filtrado.empty:
             num_registros = len(df_filtrado)
@@ -386,13 +382,427 @@ if df_raw is not None:
         if data_min and data_max:
             st.info(f"Período dos dados: {data_min.strftime('%d/%m/%Y')} a {data_max.strftime('%d/%m/%Y')}")
 
-        # [Adicione aqui todo o resto do código dos gráficos...]
-        # (O código é muito longo, mas você pode copiar toda a parte de gráficos do código original)
+        # Preparar dados para gráficos
+        if not df_filtrado.empty:
+            # **CORREÇÃO PRINCIPAL**: Modificar a lógica para permitir visualização mesmo com um único valor
+            # Verificar quantos grupos únicos existem
+            num_grupos_unicos = df_filtrado[opcao_agrupamento].nunique()
+
+            if num_grupos_unicos >= 1:  # Mudança: >= 1 ao invés de > 1
+                # Fazer agregação - contar ocorrências e calcular valores por grupo
+                df_grafico = df_filtrado.groupby(opcao_agrupamento).agg({
+                    'preco': ['mean', 'sum', 'count']
+                }).reset_index()
+
+                # Simplificar nomes das colunas
+                df_grafico.columns = [opcao_agrupamento, 'preco_medio', 'preco_total', 'count']
+                df_grafico = df_grafico.sort_values(by="preco_total", ascending=False)
+
+                # Criar visualizações
+                st.subheader("📊 Visualizações")
+
+                # Limitar exibição se houver muitos grupos
+                if len(df_grafico) > 15:
+                    st.info(f"Exibindo os 15 principais itens por valor total de um total de {len(df_grafico)}.")
+                    df_grafico_top = df_grafico.head(15)
+                else:
+                    df_grafico_top = df_grafico
+
+                # **NOVA LÓGICA**: Adaptar visualizações para um ou múltiplos grupos
+                grupo_nome = {
+                    "agente_biologico": "Agente Biológico",
+                    "estado": "Estado",
+                    "cidade": "Cidade",
+                    "faixa_preco": "Faixa de Preço"
+                }[opcao_agrupamento]
+
+                # Se há apenas um grupo, mostrar análise detalhada desse grupo
+                if num_grupos_unicos == 1:
+                    st.info(f"📊 Análise detalhada para: **{df_grafico_top.iloc[0][opcao_agrupamento]}**")
+
+                    # Mostrar métricas específicas
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Valor Total", f"R$ {df_grafico_top.iloc[0]['preco_total']:.2f}")
+                    with col2:
+                        st.metric("Preço Médio", f"R$ {df_grafico_top.iloc[0]['preco_medio']:.2f}")
+                    with col3:
+                        st.metric("Quantidade de Registros", f"{df_grafico_top.iloc[0]['count']}")
+
+                    # Para um único agente, mostrar distribuição por outras dimensões
+                    st.subheader(f"📈 Análise Detalhada - {df_grafico_top.iloc[0][opcao_agrupamento]}")
+
+                    # Análise por estado se não foi filtrado por estado
+                    if filtro_estado == "Todos" and df_filtrado['estado'].nunique() > 1:
+                        df_estados = df_filtrado.groupby('estado').agg({
+                            'preco': ['mean', 'sum', 'count']
+                        }).reset_index()
+                        df_estados.columns = ['estado', 'preco_medio', 'preco_total', 'count']
+                        df_estados = df_estados.sort_values(by="preco_total", ascending=False)
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            fig_estados = px.bar(
+                                df_estados,
+                                x='estado',
+                                y='preco_total',
+                                title=f"Valor Total por Estado - {df_grafico_top.iloc[0][opcao_agrupamento]}",
+                                labels={'preco_total': 'Valor Total (R$)', 'estado': 'Estado'}
+                            )
+                            fig_estados.update_layout(height=400, template="plotly_white")
+                            st.plotly_chart(fig_estados, use_container_width=True)
+
+                        with col2:
+                            fig_estados_pie = px.pie(
+                                df_estados,
+                                values='preco_total',
+                                names='estado',
+                                title=f"Distribuição por Estado - {df_grafico_top.iloc[0][opcao_agrupamento]}"
+                            )
+                            fig_estados_pie.update_layout(height=400)
+                            st.plotly_chart(fig_estados_pie, use_container_width=True)
+
+                    # Análise por cidade se não foi filtrado por cidade
+                    elif filtro_cidade == "Todas" and df_filtrado['cidade'].nunique() > 1:
+                        df_cidades = df_filtrado.groupby('cidade').agg({
+                            'preco': ['mean', 'sum', 'count']
+                        }).reset_index()
+                        df_cidades.columns = ['cidade', 'preco_medio', 'preco_total', 'count']
+                        df_cidades = df_cidades.sort_values(by="preco_total", ascending=False).head(10)
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            fig_cidades = px.bar(
+                                df_cidades,
+                                x='cidade',
+                                y='preco_total',
+                                title=f"Valor Total por Cidade - {df_grafico_top.iloc[0][opcao_agrupamento]}",
+                                labels={'preco_total': 'Valor Total (R$)', 'cidade': 'Cidade'}
+                            )
+                            fig_cidades.update_layout(height=400, template="plotly_white", xaxis_tickangle=-45)
+                            st.plotly_chart(fig_cidades, use_container_width=True)
+
+                        with col2:
+                            fig_cidades_pie = px.pie(
+                                df_cidades,
+                                values='preco_total',
+                                names='cidade',
+                                title=f"Distribuição por Cidade - {df_grafico_top.iloc[0][opcao_agrupamento]}"
+                            )
+                            fig_cidades_pie.update_layout(height=400)
+                            st.plotly_chart(fig_cidades_pie, use_container_width=True)
+
+                else:
+                    # Lógica original para múltiplos grupos
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        # Gráfico de valor total
+                        fig_valor = go.Figure()
+                        fig_valor.add_trace(
+                            go.Bar(
+                                x=df_grafico_top[opcao_agrupamento],
+                                y=df_grafico_top["preco_total"],
+                                marker_color='rgb(41, 128, 185)',
+                                name="Valor Total"
+                            )
+                        )
+
+                        fig_valor.update_layout(
+                            title=f"Valor Total por {grupo_nome}",
+                            xaxis_title=grupo_nome,
+                            yaxis_title="Valor Total (R$)",
+                            height=400,
+                            template="plotly_white",
+                            xaxis_tickangle=-45
+                        )
+
+                        st.plotly_chart(fig_valor, use_container_width=True)
+
+                    with col2:
+                        # Gráfico de preço médio
+                        fig_medio = go.Figure()
+                        fig_medio.add_trace(
+                            go.Bar(
+                                x=df_grafico_top[opcao_agrupamento],
+                                y=df_grafico_top["preco_medio"],
+                                marker_color='rgb(39, 174, 96)',
+                                name="Preço Médio"
+                            )
+                        )
+
+                        fig_medio.update_layout(
+                            title=f"Preço Médio por {grupo_nome}",
+                            xaxis_title=grupo_nome,
+                            yaxis_title="Preço Médio (R$)",
+                            height=400,
+                            template="plotly_white",
+                            xaxis_tickangle=-45
+                        )
+
+                        st.plotly_chart(fig_medio, use_container_width=True)
+
+                    # Terceira linha com gráficos de pizza
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        # Gráfico de pizza para valor total
+                        fig_pie_valor = px.pie(
+                            df_grafico_top,
+                            values='preco_total',
+                            names=opcao_agrupamento,
+                            title=f"Distribuição de Valor Total por {grupo_nome}"
+                        )
+                        fig_pie_valor.update_traces(textposition='inside', textinfo='percent+label')
+                        fig_pie_valor.update_layout(height=400)
+
+                        st.plotly_chart(fig_pie_valor, use_container_width=True)
+
+                    with col2:
+                        # Gráfico de pizza para quantidade
+                        fig_pie_count = px.pie(
+                            df_grafico_top,
+                            values='count',
+                            names=opcao_agrupamento,
+                            title=f"Distribuição de Quantidade por {grupo_nome}"
+                        )
+                        fig_pie_count.update_traces(textposition='inside', textinfo='percent+label')
+                        fig_pie_count.update_layout(height=400)
+
+                        st.plotly_chart(fig_pie_count, use_container_width=True)
+
+                # Análise temporal (sempre mostrar se há dados suficientes)
+                st.subheader("⏰ Análise Temporal")
+
+                # Permitir escolha do período de agrupamento e métrica
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    periodo = st.selectbox("Período", ["Mês", "Ano"], index=0)
+                with col2:
+                    metrica_temporal = st.selectbox("Métrica", ["Valor Total", "Preço Médio", "Quantidade"], index=0)
+
+                # Preparar dados temporais
+                df_tempo = df_filtrado.copy()
+
+                # Criar coluna de período
+                if periodo == "Mês":
+                    df_tempo['periodo_str'] = df_tempo['data'].dt.strftime('%Y-%m')
+                    df_tempo['periodo_dt'] = pd.to_datetime(df_tempo['periodo_str'] + '-01')
+                    formato_data = '%b %Y'
+                else:  # Ano
+                    df_tempo['periodo_str'] = df_tempo['data'].dt.strftime('%Y')
+                    df_tempo['periodo_dt'] = pd.to_datetime(df_tempo['periodo_str'] + '-01-01')
+                    formato_data = '%Y'
+
+                # Agrupar por período e agente biológico
+                if metrica_temporal == "Valor Total":
+                    df_tempo_grupo = df_tempo.groupby(['periodo_dt', 'periodo_str', 'agente_biologico'])[
+                        'preco'].sum().reset_index()
+                    y_column = 'preco'
+                    y_label = "Valor Total (R$)"
+                elif metrica_temporal == "Preço Médio":
+                    df_tempo_grupo = df_tempo.groupby(['periodo_dt', 'periodo_str', 'agente_biologico'])[
+                        'preco'].mean().reset_index()
+                    y_column = 'preco'
+                    y_label = "Preço Médio (R$)"
+                else:  # Quantidade
+                    df_tempo_grupo = df_tempo.groupby(
+                        ['periodo_dt', 'periodo_str', 'agente_biologico']).size().reset_index(name='quantidade')
+                    y_column = 'quantidade'
+                    y_label = "Quantidade de Registros"
+
+                if len(df_tempo_grupo) > 0:
+                    # Criar gráfico de linha temporal
+                    fig_tempo = px.line(
+                        df_tempo_grupo,
+                        x='periodo_dt',
+                        y=y_column,
+                        color='agente_biologico',
+                        title=f"Evolução Temporal - {metrica_temporal} por Agente Biológico ({periodo})",
+                        labels={
+                            'periodo_dt': periodo,
+                            y_column: y_label,
+                            'agente_biologico': 'Agente Biológico'
+                        },
+                        markers=True
+                    )
+
+                    # Melhorar formatação do eixo X
+                    fig_tempo.update_xaxes(
+                        tickformat=formato_data,
+                        dtick="M1" if periodo == "Mês" else "M12"
+                    )
+
+                    fig_tempo.update_layout(
+                        height=500,
+                        template="plotly_white",
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="right",
+                            x=1
+                        ),
+                        xaxis_title=f"{periodo} (formato: {formato_data})",
+                        yaxis_title=y_label
+                    )
+
+                    st.plotly_chart(fig_tempo, use_container_width=True)
+
+        # Seção de dados detalhados - mover para posição mais visível
+        st.subheader("📋 Dados Detalhados e Download")
+
+        # Opção para download - sempre disponível quando há dados filtrados
+        if not df_filtrado.empty:
+            col1, col2 = st.columns([2, 1])
+
+            with col1:
+                st.info(f"📊 {len(df_filtrado)} registros disponíveis para download e visualização")
+
+            with col2:
+                # Preparar dados para download (todos os dados filtrados)
+                df_download = df_filtrado.copy()
+                df_download['data'] = df_download['data'].dt.strftime('%d/%m/%Y')
+                df_download = df_download[['data', 'estado', 'cidade', 'agente_biologico', 'faixa_preco', 'preco']]
+                df_download = df_download.rename(columns={
+                    'agente_biologico': 'Agente Biológico',
+                    'faixa_preco': 'Faixa de Preço',
+                    'preco': 'Preço (R$)'
+                })
+
+                csv = df_download.to_csv(index=False)
+                st.download_button(
+                    label=f"📥 Download CSV ({len(df_download)} registros)",
+                    data=csv,
+                    file_name="agentes_biologicos_filtrados.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
+        # Seção de dados detalhados
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("Opções de Visualização")
+        mostrar_dados = st.sidebar.checkbox("Mostrar Tabela de Dados", value=False)
+
+        if mostrar_dados and not df_filtrado.empty:
+            # Configurar número de linhas a exibir
+            max_linhas = min(100, len(df_filtrado))
+            # Corrigir o problema do slider quando min_value = max_value
+            if max_linhas <= 10:
+                num_linhas = max_linhas
+                st.sidebar.info(f"Exibindo todas as {max_linhas} linhas disponíveis")
+            else:
+                num_linhas = st.sidebar.slider(
+                    "Linhas na tabela",
+                    min_value=10,
+                    max_value=max_linhas,
+                    value=min(50, max_linhas),
+                    step=10
+                )
+
+            st.subheader("📋 Tabela de Dados")
+
+            # Preparar dados para exibição
+            df_display = df_filtrado.copy()
+            df_display['data'] = df_display['data'].dt.strftime('%d/%m/%Y')
+            df_display = df_display[['data', 'estado', 'cidade', 'agente_biologico', 'faixa_preco', 'preco']].head(
+                num_linhas)
+            df_display = df_display.rename(columns={
+                'agente_biologico': 'Agente Biológico',
+                'faixa_preco': 'Faixa de Preço',
+                'preco': 'Preço (R$)'
+            })
+
+            st.dataframe(df_display, use_container_width=True)
+
+            if len(df_filtrado) > num_linhas:
+                st.info(f"Exibindo {num_linhas} de {len(df_filtrado)} linhas.")
+
+            # Opção para download - sempre disponível quando há dados filtrados
+            if len(df_filtrado) > 0:
+                # Preparar dados para download (todos os dados filtrados, não apenas os exibidos)
+                df_download = df_filtrado.copy()
+                df_download['data'] = df_download['data'].dt.strftime('%d/%m/%Y')
+                df_download = df_download[['data', 'estado', 'cidade', 'agente_biologico', 'faixa_preco', 'preco']]
+                df_download = df_download.rename(columns={
+                    'agente_biologico': 'Agente Biológico',
+                    'faixa_preco': 'Faixa de Preço',
+                    'preco': 'Preço (R$)'
+                })
+
+                csv = df_download.to_csv(index=False)
+                st.download_button(
+                    label=f"📥 Download dos Dados Filtrados (CSV) - {len(df_download)} registros",
+                    data=csv,
+                    file_name="agentes_biologicos_filtrados.csv",
+                    mime="text/csv"
+                )
+
+        # Resumo estatístico adicional
+        if st.sidebar.checkbox("Mostrar Resumo Estatístico"):
+            st.subheader("📊 Resumo Estatístico Detalhado")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.write("**Top 10 Agentes Biológicos por Valor Total:**")
+                top_agentes = df_filtrado.groupby('agente_biologico')['preco'].sum().sort_values(ascending=False).head(
+                    10)
+                for agente, valor in top_agentes.items():
+                    st.write(f"• {agente}: R$ {valor:.2f}")
+
+            with col2:
+                st.write("**Top 10 Estados por Valor Total:**")
+                top_estados = df_filtrado.groupby('estado')['preco'].sum().sort_values(ascending=False).head(10)
+                for estado, valor in top_estados.items():
+                    st.write(f"• {estado}: R$ {valor:.2f}")
 
     except Exception as e:
         st.error(f"❌ Erro ao processar o arquivo: {str(e)}")
         st.info("Verifique se o arquivo está no formato correto e contém as colunas necessárias.")
 
 else:
-    st.error("❌ Não foi possível carregar os dados")
-    st.info("📋 Certifique-se de que o arquivo 'Base_insumos_biológicos_correto.xlsx' está no repositório")
+    # Instruções quando nenhum arquivo foi carregado
+    st.info("Faça upload de um arquivo Excel para começar a análise")
+
+    st.markdown("""
+    ### Formato do Arquivo
+
+    O arquivo Excel deve conter as seguintes colunas:
+
+    - **data**: Data no formato dd/mm/aaaa ou similar
+    - **estado**: Estado (ex: SP, RJ, MG)
+    - **cidade**: Nome da cidade
+    - **agente biológico**: Nome do agente biológico
+    - **preço**: Valor numérico do preço/custo
+
+    ### Funcionalidades do Dashboard
+
+    - **Filtros dinâmicos** por data, estado, cidade, agente biológico e faixa de preço
+    - **Classificação automática de faixas de preço** baseada na distribuição de cada agente
+    - Análises de valor: preço médio, valor total por categoria
+    - Visualizações focadas em agentes biológicos
+    - Análise temporal da evolução de preços e quantidades
+    - Estatísticas detalhadas e resumos financeiros
+    - Export dos dados filtrados em CSV
+    - Gráficos interativos (barras, pizza, linha temporal)
+
+    ### Sistema de Faixas de Preço
+
+    O dashboard **automaticamente detecta** quando um agente biológico tem preços muito díspares e cria faixas inteligentes:
+
+    - **Algoritmo adaptativo**: Identifica gaps superiores a 100% entre preços
+    - **Faixas dinâmicas**: Cada agente tem suas próprias faixas baseadas em sua distribuição
+    - **Filtro inteligente**: Aparece apenas quando há múltiplas faixas para o agente selecionado
+    - **Tratamento de outliers**: Valores muito distantes ficam em faixas separadas
+
+    **Exemplo**: Bacillus pode ter Faixa I (R$ 11-21), Faixa II (R$ 386) e Faixa III (R$ 13.667)
+
+    ### Tipos de Visualização
+
+    1. **Gráficos de Valor**: Valor total e preço médio por categoria
+    2. **Gráficos de Pizza**: Distribuição percentual de valores e quantidades  
+    3. **Análise Temporal**: Evolução de preços ao longo do tempo
+    4. **Análise por Faixas**: Comparação entre diferentes faixas de preço
+    5. **Tabela Detalhada**: Dados brutos filtrados com preços e faixas
+    """)
