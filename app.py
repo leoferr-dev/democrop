@@ -552,4 +552,4 @@ if df_raw is not None:
 
 else:
     st.error("❌ Não foi possível carregar os dados")
-    st.info("📋 Certifique-se de que o arquivo 'Base_insumos_biológicos_correto.xlsx' está no repositório")
+    st.info("📋 Certifique-se de que o arquivo 'Base_insumos_biológicos_correto.xlsx' está no repositório #")
