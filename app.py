@@ -83,9 +83,21 @@ if df_raw is not None:
             Cria faixas de preço baseadas em gaps significativos entre valores.
             Para poucos dados, agrupa valores similares sem sobreposição.
             Para muitos dados, usa detecção de gaps relativos.
+            
+            EXCEÇÕES ESPECIAIS:
+            - Methylobacterium: sempre uma faixa única (mesmo produto)
             """
             if len(precos) <= 1:
                 return [{"nome": "Faixa Única", "min": min(precos), "max": max(precos), "valores": precos}]
+
+            # EXCEÇÃO ESPECIAL: Methylobacterium sempre em uma faixa única
+            if "methylobacterium" in agente.lower():
+                return [{
+                    "nome": "Faixa Única",
+                    "min": min(precos),
+                    "max": max(precos),
+                    "valores": list(precos)
+                }]
 
             # Ordenar preços
             precos_ordenados = sorted(precos)
