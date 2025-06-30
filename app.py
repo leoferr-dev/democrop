@@ -81,7 +81,7 @@ if df_raw is not None:
         def criar_faixas_preco(precos, agente):
             """
             Cria faixas de preço baseadas em gaps significativos entre valores.
-            Para poucos dados, agrupa valores similares.
+            Para poucos dados, agrupa valores similares sem sobreposição.
             Para muitos dados, usa detecção de gaps relativos.
             """
             if len(precos) <= 1:
@@ -90,7 +90,7 @@ if df_raw is not None:
             # Ordenar preços
             precos_ordenados = sorted(precos)
 
-            # Para poucos dados (≤ 10), usar abordagem mais simples
+            # Para poucos dados (≤ 10), usar abordagem mais simples SEM SOBREPOSIÇÃO
             if len(precos) <= 10:
                 faixas = []
                 valores_processados = set()
@@ -99,8 +99,10 @@ if df_raw is not None:
                     if preco in valores_processados:
                         continue
 
-                    # Encontrar valores similares (dentro de 20% de diferença)
-                    valores_similares = [p for p in precos if abs(p - preco) / preco <= 0.2]
+                    # Encontrar valores similares (dentro de 20% de diferença) que ainda não foram processados
+                    valores_similares = [p for p in precos if 
+                                       abs(p - preco) / preco <= 0.2 and 
+                                       p not in valores_processados]
 
                     if valores_similares:
                         faixas.append({
@@ -109,6 +111,7 @@ if df_raw is not None:
                             "max": max(valores_similares),
                             "valores": valores_similares
                         })
+                        # Marcar todos os valores desta faixa como processados
                         valores_processados.update(valores_similares)
 
                 return faixas
