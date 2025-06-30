@@ -284,22 +284,14 @@ if df_raw is not None:
         # Dataframe final filtrado
         df_filtrado = df_temp
 
-        # Contador de resultados atualizado
-        st.info(f"Exibindo {len(df_filtrado)} registros de um total de {len(df)}")
-
         # Calcular estatísticas
         if not df_filtrado.empty:
             preco_medio = df_filtrado["preco"].mean()
             preco_total = df_filtrado["preco"].sum()
             preco_maximo = df_filtrado["preco"].max()
             preco_minimo = df_filtrado["preco"].min()
-
-            # Período de dados
-            data_min = df_filtrado["data"].min()
-            data_max = df_filtrado["data"].max()
         else:
             preco_medio = preco_total = preco_maximo = preco_minimo = 0
-            data_min = data_max = None
 
         # Exibir estatísticas
         st.subheader("📈 Estatísticas")
@@ -312,10 +304,6 @@ if df_raw is not None:
             st.metric("Preço Máximo", f"R$ {preco_maximo:.2f}")
         with col4:
             st.metric("Preço Mínimo", f"R$ {preco_minimo:.2f}")
-
-        # Mostrar período dos dados se houver dados
-        if data_min and data_max:
-            st.info(f"Período dos dados: {data_min.strftime('%d/%m/%Y')} a {data_max.strftime('%d/%m/%Y')}")
 
         # Preparar dados para gráficos
         if not df_filtrado.empty:
@@ -347,13 +335,11 @@ if df_raw is not None:
                     st.info(f"📊 Análise detalhada para: **{df_grafico_top.iloc[0]['agente_biologico']}**")
 
                     # Mostrar métricas específicas
-                    col1, col2, col3 = st.columns(3)
+                    col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Valor Total", f"R$ {df_grafico_top.iloc[0]['preco_total']:.2f}")
                     with col2:
                         st.metric("Preço Médio", f"R$ {df_grafico_top.iloc[0]['preco_medio']:.2f}")
-                    with col3:
-                        st.metric("Quantidade de Registros", f"{df_grafico_top.iloc[0]['count']}")
 
                     # Para um único agente, mostrar distribuição por outras dimensões
                     st.subheader(f"📈 Análise Detalhada - {df_grafico_top.iloc[0]['agente_biologico']}")
