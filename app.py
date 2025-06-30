@@ -284,8 +284,18 @@ if df_raw is not None:
         # Dataframe final filtrado
         df_filtrado = df_temp
 
-        # Calcular estatísticas
-        if not df_filtrado.empty:
+        # Verificar se algum filtro foi aplicado
+        filtros_aplicados = (
+            filtro_ano != "Todos" or 
+            filtro_mes != "Todos" or 
+            filtro_dia != "Todos" or 
+            filtro_estado != "Todos" or 
+            filtro_cidade != "Todas" or 
+            filtro_agente != "Todos"
+        )
+
+        # Só mostrar estatísticas e visualizações se algum filtro foi aplicado
+        if filtros_aplicados and not df_filtrado.empty:
             preco_medio = df_filtrado["preco"].mean()
             preco_total = df_filtrado["preco"].sum()
             preco_maximo = df_filtrado["preco"].max()
@@ -511,6 +521,28 @@ if df_raw is not None:
                     )
 
                     st.plotly_chart(fig_tempo, use_container_width=True)
+
+        elif not filtros_aplicados:
+            # Mensagem quando nenhum filtro foi aplicado
+            st.info("🔍 **Selecione um ou mais filtros acima para visualizar os dados e gráficos.**")
+            st.markdown("---")
+            st.markdown("""
+            ### 📊 Sobre este Dashboard
+            
+            Esta é uma **demonstração interativa** de dashboard de visualização de dados que permite:
+            
+            - **Filtros dinâmicos** por data, localização e produtos
+            - **Estatísticas** automáticas baseadas nos filtros selecionados  
+            - **Gráficos interativos** que se atualizam em tempo real
+            - **Análise temporal** para acompanhar tendências
+            
+            **👆 Use os filtros acima para começar a explorar os dados!**
+            """)
+        
+        else:
+            # Caso não haja dados após filtros aplicados
+            st.warning("❌ **Nenhum dado encontrado com os filtros selecionados.**")
+            st.info("💡 **Dica:** Tente ajustar os filtros para uma seleção menos restritiva.")
 
 
 
