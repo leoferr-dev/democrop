@@ -316,20 +316,17 @@ if df_raw is not None:
         if filtros_aplicados and not df_filtrado.empty:
             # Calcular estatísticas
             preco_medio = df_filtrado["preco"].mean()
-            preco_total = df_filtrado["preco"].sum()
             preco_maximo = df_filtrado["preco"].max()
             preco_minimo = df_filtrado["preco"].min()
 
             # Exibir estatísticas
             st.subheader("📈 Estatísticas")
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("Preço Médio", f"R$ {preco_medio:.2f}")
             with col2:
-                st.metric("Valor Total", f"R$ {preco_total:.2f}")
-            with col3:
                 st.metric("Preço Máximo", f"R$ {preco_maximo:.2f}")
-            with col4:
+            with col3:
                 st.metric("Preço Mínimo", f"R$ {preco_minimo:.2f}")
 
             # Análise temporal
