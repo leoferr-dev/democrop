@@ -526,63 +526,7 @@ if df_raw is not None:
 
                     st.plotly_chart(fig_tempo, use_container_width=True)
 
-        # Seção de dados detalhados
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("Opções de Visualização")
-        mostrar_dados = st.sidebar.checkbox("Mostrar Tabela de Dados", value=False)
 
-        if mostrar_dados and not df_filtrado.empty:
-            # Configurar número de linhas a exibir
-            max_linhas = min(100, len(df_filtrado))
-            # Corrigir o problema do slider quando min_value = max_value
-            if max_linhas <= 10:
-                num_linhas = max_linhas
-                st.sidebar.info(f"Exibindo todas as {max_linhas} linhas disponíveis")
-            else:
-                num_linhas = st.sidebar.slider(
-                    "Linhas na tabela",
-                    min_value=10,
-                    max_value=max_linhas,
-                    value=min(50, max_linhas),
-                    step=10
-                )
-
-            st.subheader("📋 Tabela de Dados")
-
-            # Preparar dados para exibição
-            df_display = df_filtrado.copy()
-            df_display['data'] = df_display['data'].dt.strftime('%d/%m/%Y')
-            df_display = df_display[['data', 'estado', 'cidade', 'agente_biologico', 'faixa_preco', 'preco']].head(
-                num_linhas)
-            df_display = df_display.rename(columns={
-                'agente_biologico': 'Agente Biológico',
-                'faixa_preco': 'Faixa de Preço',
-                'preco': 'Preço (R$)'
-            })
-
-            st.dataframe(df_display, use_container_width=True)
-
-            if len(df_filtrado) > num_linhas:
-                st.info(f"Exibindo {num_linhas} de {len(df_filtrado)} linhas.")
-
-        # Resumo estatístico adicional
-        if st.sidebar.checkbox("Mostrar Resumo Estatístico"):
-            st.subheader("📊 Resumo Estatístico Detalhado")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.write("**Top 10 Agentes Biológicos por Valor Total:**")
-                top_agentes = df_filtrado.groupby('agente_biologico')['preco'].sum().sort_values(ascending=False).head(
-                    10)
-                for agente, valor in top_agentes.items():
-                    st.write(f"• {agente}: R$ {valor:.2f}")
-
-            with col2:
-                st.write("**Top 10 Estados por Valor Total:**")
-                top_estados = df_filtrado.groupby('estado')['preco'].sum().sort_values(ascending=False).head(10)
-                for estado, valor in top_estados.items():
-                    st.write(f"• {estado}: R$ {valor:.2f}")
 
     except Exception as e:
         st.error(f"❌ Erro ao processar o arquivo: {str(e)}")
